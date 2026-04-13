@@ -85,7 +85,9 @@ models/*.pb
 *.sqlite
 *.sqlite3
 
-# Node (Dashboard/Frontend)
+# Postman
+*.postman_collection.json
+*.postman_environment.json
 node_modules/
 .next/
 out/
