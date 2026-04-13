@@ -262,5 +262,3 @@ This project is developed for disaster relief purposes.
 <p align="center">
   <strong>BhumiRaksha</strong> — Making flood relief faster, fairer, and fraud-proof 🌊
 </p>
-#   J a l b h o o m i - R a k s h a  
- 
