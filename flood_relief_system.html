@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BhumiRaksha — Flood Detection & Relief System</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0e1117;
+  --paper: #f4f0e8;
+  --paper2: #ece8dc;
+  --paper3: #e2ddd0;
+  --water: #1a5f8a;
+  --water-light: #3a8cbf;
+  --water-pale: #c8dff0;
+  --flood: #0077b6;
+  --safe: #2d6a4f;
+  --safe-light: #52b788;
+  --safe-pale: #d8f3dc;
+  --warn: #e07b2a;
+  --warn-pale: #fde8cc;
+  --danger: #c1121f;
+  --danger-pale: #fde8e8;
+  --muted: #7a7060;
+  --border: #ccc5b0;
+  --shadow: rgba(14,17,23,0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Instrument Sans', sans-serif;
+  min-height: 100vh;
+}
+
+/* Grain texture overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.5;
+}
+
+.wrapper { max-width: 1240px; margin: 0 auto; padding: 0 28px 100px; }
+
+/* ── HERO ─────────────────────────────────────────────────────── */
+.hero {
+  padding: 64px 0 56px;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 64px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 40px;
+  align-items: end;
+}
+
+.hero-eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--water);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hero-eyebrow::before {
+  content: '';
+  width: 24px; height: 2px;
+  background: var(--water);
+}
+
+h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(42px, 6vw, 80px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+}
+
+h1 em {
+  font-style: italic;
+  color: var(--water);
+}
+
+.hero-desc {
+  font-size: 15px;
+  color: var(--muted);
+  max-width: 520px;
+  line-height: 1.7;
+}
+
+.hero-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 180px;
+}
+
+.h-stat {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 16px 20px;
+  border-radius: 4px;
+}
+
+.h-stat-n {
+  font-family: 'DM Serif Display', serif;
+  font-size: 32px;
+  line-height: 1;
+  color: var(--water-light);
+}
+
+.h-stat-l {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: rgba(244,240,232,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 4px;
+}
+
+/* ── SECTION ─────────────────────────────────────────────────── */
+.sec { margin-bottom: 72px; }
+
+.sec-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sec-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
+
+.sec-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+/* ── PROBLEM FLOW ─────────────────────────────────────────────── */
+.problem-flow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+
+.pf-card {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-right: none;
+  position: relative;
+}
+
+.pf-card:last-child { border-right: 1px solid var(--border); }
+
+.pf-card::after {
+  content: '→';
+  position: absolute;
+  right: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--border);
+  z-index: 2;
+  background: var(--paper);
+  padding: 2px 0;
+}
+
+.pf-card:last-child::after { display: none; }
+
+.pf-icon { font-size: 28px; margin-bottom: 12px; }
+
+.pf-title {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: var(--ink);
+}
+
+.pf-desc {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.pf-pain {
+  margin-top: 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--danger);
+  padding: 6px 10px;
+  background: var(--danger-pale);
+  border-radius: 2px;
+}
+
+/* ── SYSTEM OVERVIEW ─────────────────────────────────────────── */
+.system-grid {
+  display: grid;
+  grid-template-columns: 1fr 2px 1fr 2px 1fr;
+  gap: 0;
+  background: var(--ink);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+
+.sys-divider { background: rgba(244,240,232,0.1); }
+
+.sys-col {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sys-col-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(244,240,232,0.4);
+  margin-bottom: 4px;
+}
+
+.sys-col-name {
+  font-family: 'DM Serif Display', serif;
+  font-size: 20px;
+  color: var(--paper);
+  line-height: 1.2;
+}
+
+.sys-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(244,240,232,0.05);
+  border-radius: 3px;
+  border-left: 2px solid transparent;
+}
+
+.sys-item.water { border-left-color: var(--water-light); }
+.sys-item.safe  { border-left-color: var(--safe-light); }
+.sys-item.warn  { border-left-color: var(--warn); }
+
+.sys-item-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+.sys-item-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: rgba(244,240,232,0.7);
+  line-height: 1.5;
+}
+
+.sys-item-text strong {
+  display: block;
+  color: var(--paper);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+/* ── VERIFICATION LOGIC ──────────────────────────────────────── */
+.verify-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.verify-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.vc-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vc-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.vc-title { font-weight: 700; font-size: 14px; }
+
+.vc-body { padding: 16px 20px; background: var(--paper2); }
+
+.vc-steps { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+
+.vc-steps li {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  padding-left: 16px;
+  position: relative;
+  line-height: 1.5;
+}
+
+.vc-steps li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--border);
+}
+
+.vc-steps li strong { color: var(--ink); }
+
+.vc-result {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 3px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.vc-result.pass { background: var(--safe-pale); color: var(--safe); }
+.vc-result.flag { background: var(--warn-pale); color: var(--warn); }
+
+/* Step 1 styling */
+.verify-card:nth-child(1) .vc-header { background: var(--water-pale); }
+.verify-card:nth-child(1) .vc-num { background: var(--water); color: white; }
+.verify-card:nth-child(2) .vc-header { background: var(--safe-pale); }
+.verify-card:nth-child(2) .vc-num { background: var(--safe); color: white; }
+.verify-card:nth-child(3) .vc-header { background: var(--warn-pale); }
+.verify-card:nth-child(3) .vc-num { background: var(--warn); color: white; }
+.verify-card:nth-child(4) .vc-header { background: var(--danger-pale); }
+.verify-card:nth-child(4) .vc-num { background: var(--danger); color: white; }
+
+/* ── COMPENSATION FLOW ───────────────────────────────────────── */
+.comp-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.cf-stage {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  padding: 24px 0;
+  border-bottom: 1px dashed var(--border);
+  align-items: start;
+}
+
+.cf-stage:last-child { border-bottom: none; }
+
+.cf-left { display: flex; gap: 16px; align-items: flex-start; }
+
+.cf-step {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.cf-label { display: flex; flex-direction: column; gap: 2px; }
+
+.cf-name {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.cf-actor {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.cf-right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cf-item {
+  padding: 8px 14px;
+  background: var(--paper2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.cf-item.highlight {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.cf-item.good { background: var(--safe-pale); border-color: var(--safe-light); color: var(--safe); }
+.cf-item.warn { background: var(--warn-pale); border-color: var(--warn); color: var(--warn); }
+
+/* ── MODEL ARCHITECTURE ──────────────────────────────────────── */
+.model-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.model-card {
+  background: var(--paper2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 20px;
+  position: relative;
+}
+
+.model-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 6px 6px 0 0;
+}
+
+.model-card.cv::before { background: var(--water); }
+.model-card.fusion::before { background: var(--warn); }
+.model-card.fraud::before { background: var(--danger); }
+
+.mc-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 3px 8px;
+  border-radius: 2px;
+  margin-bottom: 12px;
+  display: inline-block;
+}
+
+.cv .mc-badge   { background: var(--water-pale); color: var(--water); }
+.fusion .mc-badge { background: var(--warn-pale); color: var(--warn); }
+.fraud .mc-badge  { background: var(--danger-pale); color: var(--danger); }
+
+.mc-title { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 8px; }
+.mc-desc { font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+
+.mc-specs { display: flex; flex-direction: column; gap: 4px; }
+
+.mc-spec {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.mc-spec:last-child { border-bottom: none; }
+.mc-spec-k { color: var(--muted); }
+.mc-spec-v { color: var(--ink); font-weight: 500; }
+
+/* ── CODE BLOCKS ─────────────────────────────────────────────── */
+.code-wrap {
+  background: var(--ink);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.code-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 18px;
+  background: rgba(244,240,232,0.05);
+  border-bottom: 1px solid rgba(244,240,232,0.08);
+}
+
+.code-fname {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: rgba(244,240,232,0.5);
+}
+
+.code-lang {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  padding: 2px 8px;
+  background: rgba(244,240,232,0.08);
+  border-radius: 2px;
+  color: rgba(244,240,232,0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.code-body { padding: 20px 24px; overflow-x: auto; }
+
+pre {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  line-height: 1.75;
+  color: #c9d1d9;
+  white-space: pre;
+}
+
+.kw  { color: #ff7b72; }
+.fn  { color: #79c0ff; }
+.str { color: #a5d6ff; }
+.cm  { color: #484f58; }
+.num { color: #f0c674; }
+.cls { color: #ffa657; }
+.op  { color: #8b949e; }
+.dec { color: #d2a8ff; }
+
+/* ── TABS ─────────────────────────────────────────────────────── */
+.tabs { margin-bottom: 0; }
+
+.tab-nav {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 0;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.tab-btn:hover { color: var(--ink); }
+.tab-btn.active { color: var(--water); border-bottom-color: var(--water); }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ── ANTI-FRAUD ──────────────────────────────────────────────── */
+.fraud-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.fraud-card {
+  padding: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+}
+
+.fraud-card.red   { background: var(--danger-pale); border-color: #f5a5a5; }
+.fraud-card.amber { background: var(--warn-pale); border-color: #f5c87a; }
+.fraud-card.green { background: var(--safe-pale); border-color: #8fd4a5; }
+
+.fc-icon { font-size: 22px; margin-bottom: 8px; }
+.fc-title { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+.fc-desc { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); line-height: 1.6; }
+
+/* ── ROADMAP ─────────────────────────────────────────────────── */
+.roadmap {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.rm-phase {
+  padding: 24px 20px;
+  border-right: 1px solid var(--border);
+}
+
+.rm-phase:last-child { border-right: none; }
+
+.rm-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.rm-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 16px;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.rm-dur {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--water);
+  margin-bottom: 14px;
+}
+
+.rm-items { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+
+.rm-items li {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  padding-left: 12px;
+  position: relative;
+  line-height: 1.4;
+}
+
+.rm-items li::before { content: '·'; position: absolute; left: 0; color: var(--water); font-size: 14px; top: -2px; }
+
+/* ── GAON BURA FLOW ──────────────────────────────────────────── */
+.gb-flow {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.gb-step {
+  flex: 1;
+  padding: 20px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.gb-step:last-child { border-right: none; }
+
+.gb-step::after {
+  content: '›';
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  color: var(--border);
+  z-index: 2;
+}
+
+.gb-step:last-child::after { display: none; }
+
+.gb-n {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+}
+
+.gb-icon { font-size: 24px; }
+
+.gb-title { font-weight: 700; font-size: 12px; line-height: 1.3; }
+
+.gb-desc {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.gb-step.active { background: var(--water-pale); }
+.gb-step.active .gb-n { color: var(--water); }
+
+/* ── FOOTER ──────────────────────────────────────────────────── */
+footer {
+  border-top: 2px solid var(--ink);
+  padding: 24px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+footer p {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* ── ANIMATIONS ──────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.sec { animation: fadeIn 0.6s ease both; }
+.sec:nth-child(1) { animation-delay: 0.05s; }
+.sec:nth-child(2) { animation-delay: 0.1s; }
+.sec:nth-child(3) { animation-delay: 0.15s; }
+.sec:nth-child(4) { animation-delay: 0.2s; }
+.sec:nth-child(5) { animation-delay: 0.25s; }
+
+@media (max-width: 900px) {
+  .problem-flow { grid-template-columns: 1fr 1fr; }
+  .pf-card::after { display: none; }
+  .pf-card { border-right: 1px solid var(--border); }
+  .verify-grid { grid-template-columns: 1fr; }
+  .model-grid { grid-template-columns: 1fr; }
+  .roadmap { grid-template-columns: 1fr 1fr; }
+  .gb-flow { flex-direction: column; }
+  .gb-step::after { display: none; }
+  .gb-step { border-right: none; border-bottom: 1px solid var(--border); }
+  .system-grid { grid-template-columns: 1fr; }
+  .sys-divider { display: none; }
+  .fraud-grid { grid-template-columns: 1fr; }
+  .hero { grid-template-columns: 1fr; }
+  .hero-stats { flex-direction: row; flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<!-- HERO -->
+<header class="hero">
+  <div>
+    <div class="hero-eyebrow">Disaster Relief Technology</div>
+    <h1>Bhumi<em>Raksha</em></h1>
+    <p class="hero-desc">An AI-powered flood detection and government compensation verification system. Satellite intelligence cross-validates community-reported damage — making relief faster, fairer, and fraud-proof across rural India.</p>
+  </div>
+  <div class="hero-stats">
+    <div class="h-stat">
+      <div class="h-stat-n">2</div>
+      <div class="h-stat-l">Verification Layers</div>
+    </div>
+    <div class="h-stat">
+      <div class="h-stat-n">48h</div>
+      <div class="h-stat-l">Claim Processing</div>
+    </div>
+    <div class="h-stat">
+      <div class="h-stat-n">GBT</div>
+      <div class="h-stat-l">Gaon Bura Tool</div>
+    </div>
+  </div>
+</header>
+
+<!-- 1. PROBLEM STATEMENT -->
+<section class="sec">
+  <div class="sec-header">
+    <span class="sec-num">01</span>
+    <h2 class="sec-title">The Problem Today</h2>
+  </div>
+  <div class="problem-flow">
+    <div class="pf-card">
+      <div class="pf-icon">🌊</div>
+      <div class="pf-title">Flood Occurs</div>
+      <div class="pf-desc">Assam, Bihar, UP, Odisha — 40M+ people displaced annually by recurring floods.</div>
+      <div class="pf-pain">⚠ No real-time mapping of affected regions</div>
+    </div>
+    <div class="pf-card">
+      <div class="pf-icon">📝</div>
+      <div class="pf-title">Manual Survey</div>
+      <div class="pf-desc">Govt officials physically visit villages. Weeks pass. Paperwork filed by hand. Data scattered.</div>
+      <div class="pf-pain">⚠ Delayed 2–8 weeks; often incomplete</div>
+    </div>
+    <div class="pf-card">
+      <div class="pf-icon">💸</div>
+      <div class="pf-title">Compensation Claimed</div>
+      <div class="pf-desc">Farmers submit crop damage claims. Middlemen inflate numbers. Fraudulent claims dilute real relief.</div>
+      <div class="pf-pain">⚠ Genuine victims underpaid or skipped</div>
+    </div>
+    <div class="pf-card">
+      <div class="pf-icon">🏦</div>
+      <div class="pf-title">Funds Disbursed</div>
+      <div class="pf-desc">SDRF/NDRF funds released months later. DBT transfer fails without verified beneficiary data.</div>
+      <div class="pf-pain">⚠ Average 3–6 months to reach farmer</div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. SYSTEM OVERVIEW -->
+<section class="sec">
+  <div class="sec-header">
+    <span class="sec-num">02</span>
+    <h2 class="sec-title">BhumiRaksha System — Three Pillars</h2>
+  </div>
+  <div class="system-grid">
+    <div class="sys-col">
+      <div class="sys-col-title">Pillar 1</div>
+      <div class="sys-col-name">Community<br>Reporting</div>
+      <div class="sys-item water">
+        <span class="sys-item-icon">📱</span>
+        <div class="sys-item-text"><strong>Gaon Bura Mobile App</strong>Simple offline-first app. Village head uploads geo-tagged photos + selects damage type.</div>
+      </div>
+      <div class="sys-item water">
+        <span class="sys-item-icon">📍</span>
+        <div class="sys-item-text"><strong>GPS + Timestamp Lock</strong>Image metadata stripped; coordinates verified at backend. Cannot fake location.</div>
+      </div>
+      <div class="sys-item water">
+        <span class="sys-item-icon">🗂️</span>
+        <div class="sys-item-text"><strong>Damage Categories</strong>Crop loss, house damage, livestock, infrastructure. Maps to NDRF compensation rules.</div>
+      </div>
+    </div>
+
+    <div class="sys-divider"></div>
+
+    <div class="sys-col">
+      <div class="sys-col-title">Pillar 2</div>
+      <div class="sys-col-name">Satellite<br>Verification</div>
+      <div class="sys-item safe">
+        <span class="sys-item-icon">🛰️</span>
+        <div class="sys-item-text"><strong>Sentinel-1 SAR + Sentinel-2</strong>SAR penetrates clouds (critical during monsoon). Pre/post flood NDWI change detection.</div>
+      </div>
+      <div class="sys-item safe">
+        <span class="sys-item-icon">🤖</span>
+        <div class="sys-item-text"><strong>YOLOv8 + SegFormer</strong>Flood extent segmentation + severity scoring per village polygon. Cross-checks claim.</div>
+      </div>
+      <div class="sys-item safe">
+        <span class="sys-item-icon">✅</span>
+        <div class="sys-item-text"><strong>Dual Verification Score</strong>Ground image + satellite both must confirm. Score 0–100; threshold 60+ for approval.</div>
+      </div>
+    </div>
+
+    <div class="sys-divider"></div>
+
+    <div class="sys-col">
+      <div class="sys-col-title">Pillar 3</div>
+      <div class="sys-col-name">Compensation<br>Pipeline</div>
+      <div class="sys-item warn">
+        <span class="sys-item-icon">🧮</span>
+        <div class="sys-item-text"><strong>Auto Damage Quantification</strong>Flood extent × crop type × NDRF rate tables → computed compensation amount.</div>
+      </div>
+      <div class="sys-item warn">
+        <span class="sys-item-icon">🏛️</span>
+        <div class="sys-item-text"><strong>Govt Dashboard</strong>District officer reviews flagged cases. Approve/reject with one click. Audit trail recorded.</div>
+      </div>
+      <div class="sys-item warn">
+        <span class="sys-item-icon">💳</span>
+        <div class="sys-item-text"><strong>Direct DBT Transfer</strong>Approved claims trigger Aadhaar-linked bank transfer via PFMS. Farmer notified via SMS.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. GAON BURA WORKFLOW -->
+<section class="sec">
+  <div class="sec-header">
+    <span class="sec-num">03</span>
+    <h2 class="sec-title">Gaon Bura Upload — Step by Step</h2>
+  </div>
+  <div class="gb-flow">
+    <div class="gb-step">
+      <div class="gb-n">STEP 01</div>
+      <div class="gb-icon">🔐</div>
+      <div class="gb-title">Login with Aadhaar OTP</div>
+      <div class="gb-desc">Gaon Bura authenticates with their Aadhaar-linked mobile. Prevents impersonation. Village ID auto-assigned.</div>
+    </div>
+    <div class="gb-step active">
+      <div class="gb-n">STEP 02</div>
+      <div class="gb-icon">📸</div>
+      <div class="gb-title">Capture Photos On-site</div>
+      <div class="gb-desc">App forces GPS lock before shutter. Captures location, timestamp, compass bearing. Min 3 photos required per claim. Works offline.</div>
+    </div>
+    <div class="gb-step">
+      <div class="gb-n">STEP 03</div>
+      <div class="gb-icon">📋</div>
+      <div class="gb-title">Fill Damage Report</div>
+      <div class="gb-desc">Select: affected area (acres), crop type, damage %. Add house/livestock damage. Voice input supported (Assamese, Hindi, Odia).</div>
+    </div>
+    <div class="gb-step">
+      <div class="gb-n">STEP 04</div>
+      <div class="gb-icon">📡</div>
+      <div class="gb-title">Submit + Auto-verify</div>
+      <div class="gb-desc">On network, report uploads. Backend immediately cross-checks GPS coords with satellite flood map. Verification score computed in ~2 minutes.</div>
+    </div>
+    <div class="gb-step">
+      <div class="gb-n">STEP 05</div>
+      <div class="gb-icon">💬</div>
+      <div class="gb-title">SMS Status Update</div>
+      <div class="gb-desc">Gaon Bura and affected farmers receive SMS with claim ID, status (Verified / Under Review / Rejected) and expected payment date.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. VERIFICATION ENGINE -->
+<section class="sec">
+  <div class="sec-header">
+    <span class="sec-num">04</span>
+    <h2 class="sec-title">Dual Verification Engine</h2>
+  </div>
+  <div class="verify-grid">
+    <div class="verify-card">
+      <div class="vc-header">
+        <div class="vc-num">A</div>
+        <div class="vc-title">Ground Photo Analysis</div>
+      </div>
+      <div class="vc-body">
+        <ul class="vc-steps">
+          <li><strong>YOLOv8 flood classifier</strong> — detects water presence, waterline, submerged structures</li>
+          <li><strong>Depth estimation</strong> — monocular depth cues from reference objects (doors, poles)</li>
+          <li><strong>Scene validation</strong> — is it really a field/house? Not a stock photo or old image?</li>
+          <li><strong>Metadata hash check</strong> — GPS coords match submitted village polygon ± 500m</li>
+          <li><strong>Timestamp freshness</strong> — photo within 72h of reported flood event date</li>
+        </ul>
+        <div class="vc-result pass">✓ Output: Ground Score 0–50 pts</div>
+      </div>
+    </div>
+    <div class="verify-card">
+      <div class="vc-header">
+        <div class="vc-num">B</div>
+        <div class="vc-title">Satellite Cross-Validation</div>
+      </div>
+      <div class="vc-body">
+        <ul class="vc-steps">
+          <li><strong>Sentinel-1 SAR</strong> — cloud-free flood mapping via backscatter change (VV/VH ratio)</li>
+          <li><strong>NDWI change detection</strong> — pre-event vs post-event water index diff on Sentinel-2</li>
+          <li><strong>SegFormer segmentation</strong> — pixel-wise flood extent within village boundary polygon</li>
+          <li><strong>MODIS NDVI loss</strong> — crop health degradation confirms agricultural damage</li>
+          <li><strong>Flood % score</strong> — what % of claimed area is actually inundated in satellite data</li>
+        </ul>
+        <div class="vc-result pass">✓ Output: Satellite Score 0–50 pts</div>
+      </div>
+    </div>
+    <div class="verify-card">
+      <div class="vc-header">
+        <div class="vc-num">C</div>
+        <div class="vc-title">Score Fusion Logic</div>
+      </div>
+      <div class="vc-body">
+        <ul class="vc-steps">
+          <li><strong>Total score</strong> = Ground Score + Satellite Score (max 100)</li>
+          <li><strong>≥ 75</strong> → Auto-approved, compensation calculated, DBT queued</li>
+          <li><strong>55–74</strong> → Approved with officer spot-check within 48h</li>
+          <li><strong>35–54</strong> → Flagged for field verification by patwari/tehsildar</li>
+          <li><strong>&lt; 35</strong> → Rejected with reason code sent via SMS to Gaon Bura</li>
+        </ul>
+        <div class="vc-result flag">⚡ Score drives SLA — no human delay for high-confidence claims</div>
+      </div>
+    </div>
+    <div class="verify-card">
+      <div class="vc-header">
+        <div class="vc-num">D</div>
+        <div class="vc-title">Anti-Fraud Checks</div>
+      </div>
+      <div class="vc-body">
+        <ul class="vc-steps">
+          <li><strong>Reverse image search</strong> — detect if photo is recycled from web or past claims</li>
+          <li><strong>Duplicate GPS detection</strong> — same coordinates claimed by multiple Gaon Buras</li>
+          <li><strong>Historical pattern</strong> — village with unusually high claim rate flagged for audit</li>
+          <li><strong>Temporal anomaly</strong> — claim submitted before flood event in satellite record</li>
+          <li><strong>Beneficiary dedup</strong> — same Aadhaar cannot receive multiple crop loss payments</li>
+        </ul>
+        <div class="vc-result flag">🔍 Fraud score logged; high-risk claims routed to vigilance</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. COMPENSATION PIPELINE -->
+<section class="sec">
+  <div class="sec-header">
+    <span class="sec-num">05</span>
+    <h2 class="sec-title">Compensation Calculation & Disbursement</h2>
+  </div>
+  <div class="comp-flow">
+    <div class="cf-stage">
+      <div class="cf-left">
+        <div class="cf-step">1</div>
+        <div class="cf-label">
+          <div class="cf-name">Damage Quantification</div>
+          <div class="cf-actor">System (auto)</div>
+        </div>
+      </div>
+      <div class="cf-right">
+        <div class="cf-item">Inundated area (ha) from SAR segmentation</div>
+        <div class="cf-item">Crop type from ISRO Kharif/Rabi maps</div>
+        <div class="cf-item">Damage % from NDVI loss ratio</div>
+        <div class="cf-item">House damage severity from photo AI</div>
+        <div class="cf-item highlight">→ Compute: hectares × NDRF rate × damage%</div>
+      </div>
+    </div>
+    <div class="cf-stage">
+      <div class="cf-left">
+        <div class="cf-step">2</div>
+        <div class="cf-label">
+          <div class="cf-name">NDRF Rate Application</div>
+          <div class="cf-actor">Rules Engine</div>
+        </div>
+      </div>
+      <div class="cf-right">
+        <div class="cf-item">Paddy/Wheat loss: ₹6,800/ha (rainfed)</div>
+        <div class="cf-item">Perennial crop: ₹13,500/ha</div>
+        <div class="cf-item">Pucca house damage: up to ₹95,100</div>
+        <div class="cf-item">Kutcha house: up to ₹3,200 (partial)</div>
+        <div class="cf-item good">State-specific rates auto-loaded by district</div>
+      </div>
+    </div>
+    <div class="cf-stage">
+      <div class="cf-left">
+        <div class="cf-step">3</div>
+        <div class="cf-label">
+          <div class="cf-name">Officer Review</div>
+          <div class="cf-actor">Tehsildar / DM</div>
+        </div>
+      </div>
+      <div class="cf-right">
+        <div class="cf-item">Dashboard shows: claim map + satellite overlay</div>
+        <div class="cf-item">AI confidence score + supporting images</div>
+        <div class="cf-item">Beneficiary list with Aadhaar + bank account</div>
+        <div class="cf-item highlight">One-click bulk approve for high-confidence batch</div>
+        <div class="cf-item warn">Flagged cases shown separately for manual review</div>
+      </div>
+    </div>
+    <div class="cf-stage">
+      <div class="cf-left">
+        <div class="cf-step">4</div>
+        <div class="cf-label">
+          <div class="cf-name">PFMS Integration</div>
+          <div class="cf-actor">Finance Dept API</div>
+        </div>
+      </div>
+      <div class="cf-right">
+        <div class="cf-item">Approved list → PFMS API (Public Financial Mgmt)</div>
+        <div class="cf-item">Aadhaar-linked bank account auto-fetched from NPCI</div>
+        <div class="cf-item">SDRF head of account tagged per state rules</div>
+        <div class="cf-item good">DBT transfer within 24–48h of approval</div>
+        <div class="cf-item good">SMS confirmation to farmer: "₹6,800 credited"</div>
+      </div>
+    </div>
+    <div class="cf-stage">
+      <div class="cf-left">
+        <div class="cf-step">5</div>
+        <div class="cf-label">
+          <div class="cf-name">Audit & Grievance</div>
+          <div class="cf-actor">Citizen + Govt</div>
+        </div>
+      </div>
+      <div class="cf-right">
+        <div class="cf-item">Full audit trail: every action logged with timestamp + actor</div>
+        <div class="cf-item">Citizen can check claim status via SMS: "STATUS &lt;ClaimID&gt; to 14416"</div>
+        <div class="cf-item">Grievance portal for rejected claims — resubmit with additional photos</div>
+        <div class="cf-item good">CAG-compatible reports auto-generated quarterly</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. MODEL ARCHITECTURE -->
+<section class="sec">
+  <div class="sec-header">
+    <span class="sec-num">06</span>
+    <h2 class="sec-title">AI Model Architecture</h2>
+  </div>
+  <div class="model-grid">
+    <div class="model-card cv">
+      <div class="mc-badge">Computer Vision</div>
+      <div class="mc-title">Ground Photo Flood Classifier</div>
+      <div class="mc-desc">Classifies ground-level images uploaded by Gaon Bura — detects flood water, submerged structures, crop damage severity.</div>
+      <div class="mc-specs">
+        <div class="mc-spec"><span class="mc-spec-k">Base Model</span><span class="mc-spec-v">YOLOv8m</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Classes</span><span class="mc-spec-v">flood / no_flood / partial</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Input</span><span class="mc-spec-v">RGB phone photos 640px</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Training Data</span><span class="mc-spec-v">FloodNet + custom labels</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Also detects</span><span class="mc-spec-v">house damage severity</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Inference</span><span class="mc-spec-v">&lt; 3s on server CPU</span></div>
+      </div>
+    </div>
+    <div class="model-card cv">
+      <div class="mc-badge">Satellite Segmentation</div>
+      <div class="mc-title">Flood Extent Mapper (SAR)</div>
+      <div class="mc-desc">Processes Sentinel-1 SAR backscatter to generate binary flood/non-flood masks even under 100% cloud cover during monsoon.</div>
+      <div class="mc-specs">
+        <div class="mc-spec"><span class="mc-spec-k">Base Model</span><span class="mc-spec-v">SegFormer-B4</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Input</span><span class="mc-spec-v">Sentinel-1 VV/VH bands</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Resolution</span><span class="mc-spec-v">10m/pixel</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Pre-trained</span><span class="mc-spec-v">Sen1Floods11 dataset</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Fine-tune on</span><span class="mc-spec-v">Assam/Bihar flood events</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Output</span><span class="mc-spec-v">GeoTIFF flood mask + %</span></div>
+      </div>
+    </div>
+    <div class="model-card fusion">
+      <div class="mc-badge">Multi-modal Fusion</div>
+      <div class="mc-title">Shared Backbone (Base Model)</div>
+      <div class="mc-desc">A single shared ResNet-50 encoder pre-trained on both satellite and ground imagery — your "base model" that handles both flood types.</div>
+      <div class="mc-specs">
+        <div class="mc-spec"><span class="mc-spec-k">Architecture</span><span class="mc-spec-v">ResNet-50 + dual head</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Head 1</span><span class="mc-spec-v">Satellite flood segmentation</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Head 2</span><span class="mc-spec-v">Ground photo classification</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Training</span><span class="mc-spec-v">Multi-task learning</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Future</span><span class="mc-spec-v">Extend: fire, drought, cyclone</span></div>
+        <div class="mc-spec"><span class="mc-spec-k">Key benefit</span><span class="mc-spec-v">One model, multiple disasters</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. ANTI-FRAUD -->
+<section class="sec">
+  <div class="sec-header">
+    <span class="sec-num">07</span>
+    <h2 class="sec-title">Anti-Fraud Architecture</h2>
+  </div>
+  <div class="fraud-grid">
+    <div class="fraud-card red">
+      <div class="fc-icon">🚫</div>
+      <div class="fc-title">Photo Fraud Prevention</div>
+      <div class="fc-desc">Perceptual hash of every uploaded image stored. Future duplicate submissions from any village detected instantly. Stock photos / Google Images detected via reverse search API. EXIF metadata verified — edited images rejected.</div>
+    </div>
+    <div class="fraud-card amber">
+      <div class="fc-icon">📍</div>
+      <div class="fc-title">Location Spoofing Detection</div>
+      <div class="fc-desc">App uses both GPS and cell tower triangulation. Coordinates must fall within registered village boundary polygon (from Census shapefiles). VPN/mock GPS app detected via Android SafetyNet attestation.</div>
+    </div>
+    <div class="fraud-card green">
+      <div class="fc-icon">🧾</div>
+      <div class="fc-title">Beneficiary Deduplication</div>
+      <div class="fc-desc">Each Aadhaar can claim once per disaster event per season. Cross-checked against PM-Fasal Bima Yojana and state relief registers. Linked family members flagged if total claim exceeds household land records.</div>
+    </div>
+    <div class="fraud-card amber">
+      <div class="fc-icon">📊</div>
+      <div class="fc-title">Statistical Anomaly Detection</div>
+      <div class="fc-desc">ML model trained on historical claim patterns. Village-level Z-score: if claims exceed 3σ above satellite-inferred damage area, auto-flag for audit. Gaon Buras with repeated fraud flags get suspended.</div>
+    </div>
+    <div class="fraud-card green">
+      <div class="fc-icon">🔗</div>
+      <div class="fc-title">Blockchain Audit Trail</div>
+      <div class="fc-desc">Every verification event, approval, and payment hashed to a permissioned ledger (Hyperledger Fabric). Immutable record prevents retrospective tampering. CAG and RTI requests answered from ledger.</div>
+    </div>
+    <div class="fraud-card red">
+      <div class="fc-icon">⏰</div>
+      <div class="fc-title">Temporal Consistency</div>
+      <div class="fc-desc">Satellite data timestamps are ground truth. Claims submitted for dates where SAR shows no inundation are automatically rejected. Prevents claims for historical floods being resubmitted in new event windows.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 8. CODE TABS -->
+<section class="sec">
+  <div class="sec-header">
+    <span class="sec-num">08</span>
+    <h2 class="sec-title">Core Implementation</h2>
+  </div>
+  <div class="tabs">
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="showTab2('c1',this)">flood_detector.py</button>
+      <button class="tab-btn" onclick="showTab2('c2',this)">sar_processor.py</button>
+      <button class="tab-btn" onclick="showTab2('c3',this)">verification_engine.py</button>
+      <button class="tab-btn" onclick="showTab2('c4',this)">compensation.py</button>
+      <button class="tab-btn" onclick="showTab2('c5',this)">mobile_api.py</button>
+    </div>
+
+    <div id="c1" class="tab-content active">
+      <div class="code-wrap">
+        <div class="code-top"><span class="code-fname">flood_detector.py</span><span class="code-lang">Python</span></div>
+        <div class="code-body"><pre>
+<span class="cm"># flood_detector.py — Ground photo flood classification using YOLOv8</span>
+<span class="kw">from</span> <span class="cls">ultralytics</span> <span class="kw">import</span> <span class="fn">YOLO</span>
+<span class="kw">import</span> <span class="cls">torch</span>, <span class="cls">cv2</span>, <span class="cls">numpy</span> <span class="kw">as</span> np
+<span class="kw">from</span> <span class="cls">PIL</span> <span class="kw">import</span> <span class="fn">Image</span>
+<span class="kw">from</span> <span class="cls">pathlib</span> <span class="kw">import</span> <span class="fn">Path</span>
+<span class="kw">from</span> <span class="cls">dataclasses</span> <span class="kw">import</span> <span class="fn">dataclass</span>
+<span class="kw">from</span> <span class="cls">typing</span> <span class="kw">import</span> <span class="fn">List</span>, <span class="fn">Optional</span>
+<span class="kw">import</span> <span class="cls">hashlib</span>, <span class="cls">exifread</span>
+<span class="kw">from</span> <span class="cls">datetime</span> <span class="kw">import</span> <span class="fn">datetime</span>, <span class="fn">timedelta</span>
+
+<span class="dec">@dataclass</span>
+<span class="kw">class</span> <span class="cls">GroundAnalysisResult</span>:
+    flood_detected: <span class="cls">bool</span>
+    confidence: <span class="cls">float</span>       <span class="cm"># 0.0 – 1.0</span>
+    ground_score: <span class="cls">int</span>        <span class="cm"># 0 – 50</span>
+    damage_class: <span class="cls">str</span>        <span class="cm"># flood/partial/none</span>
+    gps_valid: <span class="cls">bool</span>
+    timestamp_valid: <span class="cls">bool</span>
+    is_duplicate: <span class="cls">bool</span>
+    flags: <span class="fn">List</span>[<span class="cls">str</span>]
+
+<span class="kw">class</span> <span class="cls">FloodGroundDetector</span>:
+    <span class="cm">"""YOLOv8-based flood detection from Gaon Bura phone photos"""</span>
+
+    CLASSES = {<span class="num">0</span>: <span class="str">'flood'</span>, <span class="num">1</span>: <span class="str">'partial_flood'</span>,
+               <span class="num">2</span>: <span class="str">'crop_damage'</span>, <span class="num">3</span>: <span class="str">'house_damage'</span>, <span class="num">4</span>: <span class="str">'no_damage'</span>}
+    SCORE_MAP = {<span class="str">'flood'</span>: <span class="num">45</span>, <span class="str">'partial_flood'</span>: <span class="num">30</span>,
+                 <span class="str">'crop_damage'</span>: <span class="num">25</span>, <span class="str">'house_damage'</span>: <span class="num">20</span>, <span class="str">'no_damage'</span>: <span class="num">5</span>}
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, model_path: <span class="cls">str</span>, image_hash_db):
+        self.model = <span class="fn">YOLO</span>(model_path)
+        self.hash_db = image_hash_db  <span class="cm"># Redis set of seen hashes</span>
+
+    <span class="kw">def</span> <span class="fn">analyze</span>(self, image_path: <span class="cls">str</span>,
+                  submitted_lat: <span class="cls">float</span>, submitted_lon: <span class="cls">float</span>,
+                  event_date: <span class="fn">datetime</span>,
+                  village_polygon) -> <span class="cls">GroundAnalysisResult</span>:
+
+        flags = []
+        img = <span class="fn">Image.open</span>(image_path)
+
+        <span class="cm"># ── 1. Duplicate detection via perceptual hash ─────────────</span>
+        img_hash = self.<span class="fn">_phash</span>(img)
+        is_dup = img_hash <span class="kw">in</span> self.hash_db
+        <span class="kw">if</span> is_dup:
+            flags.<span class="fn">append</span>(<span class="str">'DUPLICATE_IMAGE'</span>)
+
+        <span class="cm"># ── 2. EXIF metadata validation ────────────────────────────</span>
+        gps_ok, ts_ok = self.<span class="fn">_validate_exif</span>(
+            image_path, submitted_lat, submitted_lon,
+            event_date, village_polygon, flags
+        )
+
+        <span class="cm"># ── 3. YOLOv8 inference ────────────────────────────────────</span>
+        results = self.model.<span class="fn">predict</span>(image_path, conf=<span class="num">0.4</span>, verbose=<span class="kw">False</span>)
+        top_class, confidence = self.<span class="fn">_parse_preds</span>(results[<span class="num">0</span>])
+
+        <span class="cm"># ── 4. Score computation ───────────────────────────────────</span>
+        base_score = self.SCORE_MAP.<span class="fn">get</span>(top_class, <span class="num">0</span>)
+        score = base_score
+        <span class="kw">if</span> <span class="kw">not</span> gps_ok:   score -= <span class="num">15</span>; flags.<span class="fn">append</span>(<span class="str">'GPS_MISMATCH'</span>)
+        <span class="kw">if</span> <span class="kw">not</span> ts_ok:    score -= <span class="num">10</span>; flags.<span class="fn">append</span>(<span class="str">'TIMESTAMP_STALE'</span>)
+        <span class="kw">if</span> is_dup:       score  = <span class="num">0</span>
+
+        <span class="cm"># Store hash to prevent reuse</span>
+        self.hash_db.<span class="fn">add</span>(img_hash)
+
+        <span class="kw">return</span> <span class="cls">GroundAnalysisResult</span>(
+            flood_detected=(top_class <span class="kw">in</span> [<span class="str">'flood'</span>, <span class="str">'partial_flood'</span>]),
+            confidence=confidence,
+            ground_score=<span class="fn">max</span>(<span class="num">0</span>, <span class="fn">min</span>(<span class="num">50</span>, score)),
+            damage_class=top_class,
+            gps_valid=gps_ok,
+            timestamp_valid=ts_ok,
+            is_duplicate=is_dup,
+            flags=flags
+        )
+
+    <span class="kw">def</span> <span class="fn">_validate_exif</span>(self, path, lat, lon, event_dt, polygon, flags):
+        <span class="kw">with</span> <span class="fn">open</span>(path, <span class="str">'rb'</span>) <span class="kw">as</span> f:
+            tags = exifread.<span class="fn">process_file</span>(f, stop_tag=<span class="str">'GPS'</span>)
+
+        <span class="cm"># GPS coords from EXIF must be within village polygon</span>
+        exif_lat = self.<span class="fn">_dms_to_dd</span>(tags.<span class="fn">get</span>(<span class="str">'GPS GPSLatitude'</span>))
+        exif_lon = self.<span class="fn">_dms_to_dd</span>(tags.<span class="fn">get</span>(<span class="str">'GPS GPSLongitude'</span>))
+        gps_ok = polygon.<span class="fn">buffer</span>(<span class="num">0.005</span>).<span class="fn">contains</span>(  <span class="cm"># ~500m tolerance</span>
+            <span class="fn">Point</span>(exif_lon, exif_lat)) <span class="kw">if</span> exif_lat <span class="kw">else</span> <span class="kw">False</span>
+
+        <span class="cm"># Photo must be taken within 72h of event</span>
+        exif_dt_str = <span class="cls">str</span>(tags.<span class="fn">get</span>(<span class="str">'EXIF DateTimeOriginal'</span>, <span class="str">''</span>))
+        <span class="kw">try</span>:
+            exif_dt = <span class="fn">datetime.strptime</span>(exif_dt_str, <span class="str">'%Y:%m:%d %H:%M:%S'</span>)
+            ts_ok = <span class="fn">abs</span>((exif_dt - event_dt).total_seconds()) < <span class="num">72</span> * <span class="num">3600</span>
+        <span class="kw">except</span>:
+            ts_ok = <span class="kw">False</span>
+
+        <span class="kw">return</span> gps_ok, ts_ok
+
+    <span class="kw">def</span> <span class="fn">_phash</span>(self, img) -> <span class="cls">str</span>:
+        img_small = img.<span class="fn">convert</span>(<span class="str">'L'</span>).<span class="fn">resize</span>((<span class="num">16</span>, <span class="num">16</span>))
+        pixels = <span class="cls">list</span>(img_small.<span class="fn">getdata</span>())
+        avg = <span class="fn">sum</span>(pixels) / <span class="fn">len</span>(pixels)
+        bits = <span class="str">''</span>.<span class="fn">join</span>(<span class="str">'1'</span> <span class="kw">if</span> p > avg <span class="kw">else</span> <span class="str">'0'</span> <span class="kw">for</span> p <span class="kw">in</span> pixels)
+        <span class="kw">return</span> <span class="fn">hex</span>(<span class="fn">int</span>(bits, <span class="num">2</span>))
+</pre></div></div>
+    </div>
+
+    <div id="c2" class="tab-content">
+      <div class="code-wrap">
+        <div class="code-top"><span class="code-fname">sar_processor.py</span><span class="code-lang">Python</span></div>
+        <div class="code-body"><pre>
+<span class="cm"># sar_processor.py — Sentinel-1 SAR flood extent mapping</span>
+<span class="kw">import</span> <span class="cls">ee</span>
+<span class="kw">import</span> <span class="cls">numpy</span> <span class="kw">as</span> np
+<span class="kw">import</span> <span class="cls">geopandas</span> <span class="kw">as</span> gpd
+<span class="kw">from</span> <span class="cls">shapely.geometry</span> <span class="kw">import</span> <span class="fn">shape</span>, <span class="fn">mapping</span>
+<span class="kw">from</span> <span class="cls">dataclasses</span> <span class="kw">import</span> <span class="fn">dataclass</span>
+
+<span class="dec">@dataclass</span>
+<span class="kw">class</span> <span class="cls">SatelliteResult</span>:
+    flooded_area_ha: <span class="cls">float</span>
+    flood_percentage: <span class="cls">float</span>   <span class="cm"># % of claimed area inundated</span>
+    satellite_score: <span class="cls">int</span>      <span class="cm"># 0 – 50</span>
+    ndvi_loss: <span class="cls">float</span>          <span class="cm"># crop health change</span>
+    confidence: <span class="cls">str</span>           <span class="cm"># HIGH / MEDIUM / LOW</span>
+
+<span class="kw">class</span> <span class="cls">SARFloodMapper</span>:
+    <span class="cm">"""Sentinel-1 SAR based flood mapping via GEE. Works through monsoon clouds."""</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        ee.<span class="fn">Initialize</span>()
+
+    <span class="kw">def</span> <span class="fn">analyze_village</span>(self, village_geojson: dict,
+                           event_date: <span class="cls">str</span>,      <span class="cm"># 'YYYY-MM-DD'</span>
+                           claimed_area_ha: <span class="cls">float</span>) -> <span class="cls">SatelliteResult</span>:
+
+        aoi = ee.Geometry.<span class="fn">Polygon</span>(
+            village_geojson[<span class="str">'coordinates'</span>])
+
+        pre_start  = self.<span class="fn">_offset_date</span>(event_date, -<span class="num">30</span>)
+        pre_end    = self.<span class="fn">_offset_date</span>(event_date, -<span class="num">3</span>)
+        post_end   = self.<span class="fn">_offset_date</span>(event_date, <span class="num">7</span>)
+
+        <span class="cm"># ── Sentinel-1 SAR collection ──────────────────────────────</span>
+        s1_pre = (ee.ImageCollection(<span class="str">'COPERNICUS/S1_GRD'</span>)
+                    .<span class="fn">filterBounds</span>(aoi)
+                    .<span class="fn">filterDate</span>(pre_start, pre_end)
+                    .<span class="fn">filter</span>(ee.Filter.<span class="fn">eq</span>(<span class="str">'instrumentMode'</span>, <span class="str">'IW'</span>))
+                    .<span class="fn">filter</span>(ee.Filter.<span class="fn">listContains</span>(<span class="str">'transmitterReceiverPolarisation'</span>, <span class="str">'VV'</span>))
+                    .<span class="fn">select</span>(<span class="str">'VV'</span>).<span class="fn">mean</span>())
+
+        s1_post = (ee.ImageCollection(<span class="str">'COPERNICUS/S1_GRD'</span>)
+                     .<span class="fn">filterBounds</span>(aoi)
+                     .<span class="fn">filterDate</span>(event_date, post_end)
+                     .<span class="fn">filter</span>(ee.Filter.<span class="fn">eq</span>(<span class="str">'instrumentMode'</span>, <span class="str">'IW'</span>))
+                     .<span class="fn">filter</span>(ee.Filter.<span class="fn">listContains</span>(<span class="str">'transmitterReceiverPolarisation'</span>, <span class="str">'VV'</span>))
+                     .<span class="fn">select</span>(<span class="str">'VV'</span>).<span class="fn">mean</span>())
+
+        <span class="cm"># ── Flood mask: backscatter drops during flooding ──────────</span>
+        <span class="cm"># Water absorbs radar → VV drops significantly</span>
+        diff = s1_pre.<span class="fn">subtract</span>(s1_post)
+        flood_mask = diff.<span class="fn">gt</span>(<span class="num">3</span>)  <span class="cm"># 3 dB threshold (empirically validated)</span>
+
+        <span class="cm"># ── Compute flooded area ───────────────────────────────────</span>
+        pixel_area = ee.Image.<span class="fn">pixelArea</span>().<span class="fn">divide</span>(<span class="num">10000</span>)  <span class="cm"># m² → ha</span>
+        flooded_ha = (flood_mask.<span class="fn">multiply</span>(pixel_area)
+                               .<span class="fn">reduceRegion</span>(
+                                   reducer=ee.Reducer.<span class="fn">sum</span>(),
+                                   geometry=aoi, scale=<span class="num">10</span>)
+                               .<span class="fn">getInfo</span>()).<span class="fn">get</span>(<span class="str">'VV'</span>, <span class="num">0</span>)
+
+        <span class="cm"># ── NDVI loss for crop damage ──────────────────────────────</span>
+        ndvi_loss = self.<span class="fn">_compute_ndvi_loss</span>(aoi, pre_end, post_end)
+
+        <span class="cm"># ── Scoring ────────────────────────────────────────────────</span>
+        flood_pct = <span class="fn">min</span>(<span class="num">1.0</span>, flooded_ha / claimed_area_ha) <span class="kw">if</span> claimed_area_ha > <span class="num">0</span> <span class="kw">else</span> <span class="num">0</span>
+        sat_score = <span class="fn">int</span>(flood_pct * <span class="num">50</span>)
+        confidence = <span class="str">'HIGH'</span> <span class="kw">if</span> flood_pct > <span class="num">0.7</span> <span class="kw">else</span> <span class="str">'MEDIUM'</span> <span class="kw">if</span> flood_pct > <span class="num">0.3</span> <span class="kw">else</span> <span class="str">'LOW'</span>
+
+        <span class="kw">return</span> <span class="cls">SatelliteResult</span>(
+            flooded_area_ha=<span class="fn">round</span>(flooded_ha, <span class="num">2</span>),
+            flood_percentage=<span class="fn">round</span>(flood_pct * <span class="num">100</span>, <span class="num">1</span>),
+            satellite_score=sat_score,
+            ndvi_loss=ndvi_loss,
+            confidence=confidence
+        )
+
+    <span class="kw">def</span> <span class="fn">_compute_ndvi_loss</span>(self, aoi, pre_end, post_end) -> <span class="cls">float</span>:
+        <span class="kw">def</span> <span class="fn">get_ndvi</span>(date_range):
+            <span class="kw">return</span> (ee.ImageCollection(<span class="str">'COPERNICUS/S2_SR_HARMONIZED'</span>)
+                      .<span class="fn">filterBounds</span>(aoi).<span class="fn">filterDate</span>(*date_range)
+                      .<span class="fn">filter</span>(ee.Filter.<span class="fn">lt</span>(<span class="str">'CLOUDY_PIXEL_PERCENTAGE'</span>, <span class="num">30</span>))
+                      .<span class="fn">median</span>().<span class="fn">normalizedDifference</span>([<span class="str">'B8'</span>, <span class="str">'B4'</span>])
+                      .<span class="fn">reduceRegion</span>(ee.Reducer.<span class="fn">mean</span>(), aoi, <span class="num">20</span>)
+                      .<span class="fn">getInfo</span>().<span class="fn">get</span>(<span class="str">'nd'</span>, <span class="num">0</span>))
+
+        pre_ndvi  = <span class="fn">get_ndvi</span>([self.<span class="fn">_offset_date</span>(pre_end, -<span class="num">20</span>), pre_end])
+        post_ndvi = <span class="fn">get_ndvi</span>([self.<span class="fn">_offset_date</span>(post_end, -<span class="num">10</span>), post_end])
+        <span class="kw">return</span> <span class="fn">round</span>(pre_ndvi - post_ndvi, <span class="num">3</span>)
+
+    <span class="kw">def</span> <span class="fn">_offset_date</span>(self, date_str: <span class="cls">str</span>, days: <span class="cls">int</span>) -> <span class="cls">str</span>:
+        <span class="kw">from</span> <span class="cls">datetime</span> <span class="kw">import</span> <span class="fn">datetime</span>, <span class="fn">timedelta</span>
+        dt = <span class="fn">datetime.strptime</span>(date_str, <span class="str">'%Y-%m-%d'</span>) + <span class="fn">timedelta</span>(days=days)
+        <span class="kw">return</span> dt.<span class="fn">strftime</span>(<span class="str">'%Y-%m-%d'</span>)
+</pre></div></div>
+    </div>
+
+    <div id="c3" class="tab-content">
+      <div class="code-wrap">
+        <div class="code-top"><span class="code-fname">verification_engine.py</span><span class="code-lang">Python</span></div>
+        <div class="code-body"><pre>
+<span class="cm"># verification_engine.py — Score fusion + claim routing</span>
+<span class="kw">from</span> <span class="cls">dataclasses</span> <span class="kw">import</span> <span class="fn">dataclass</span>
+<span class="kw">from</span> <span class="cls">enum</span> <span class="kw">import</span> <span class="fn">Enum</span>
+<span class="kw">from</span> <span class="cls">flood_detector</span> <span class="kw">import</span> <span class="cls">FloodGroundDetector</span>, <span class="cls">GroundAnalysisResult</span>
+<span class="kw">from</span> <span class="cls">sar_processor</span> <span class="kw">import</span> <span class="cls">SARFloodMapper</span>, <span class="cls">SatelliteResult</span>
+<span class="kw">import</span> <span class="cls">logging</span>
+
+<span class="kw">class</span> <span class="cls">ClaimStatus</span>(<span class="fn">Enum</span>):
+    AUTO_APPROVED      = <span class="str">"AUTO_APPROVED"</span>      <span class="cm"># Score ≥ 75</span>
+    OFFICER_REVIEW     = <span class="str">"OFFICER_REVIEW"</span>     <span class="cm"># Score 55–74</span>
+    FIELD_VERIFICATION = <span class="str">"FIELD_VERIFICATION"</span> <span class="cm"># Score 35–54</span>
+    REJECTED           = <span class="str">"REJECTED"</span>           <span class="cm"># Score < 35</span>
+    FRAUD_FLAGGED      = <span class="str">"FRAUD_FLAGGED"</span>      <span class="cm"># Fraud detected</span>
+
+<span class="dec">@dataclass</span>
+<span class="kw">class</span> <span class="cls">VerificationResult</span>:
+    claim_id: <span class="cls">str</span>
+    total_score: <span class="cls">int</span>           <span class="cm"># 0 – 100</span>
+    ground_score: <span class="cls">int</span>
+    satellite_score: <span class="cls">int</span>
+    status: <span class="cls">ClaimStatus</span>
+    estimated_compensation: <span class="cls">float</span>  <span class="cm"># INR</span>
+    flood_area_ha: <span class="cls">float</span>
+    flags: <span class="cls">list</span>
+    sms_message: <span class="cls">str</span>
+
+<span class="kw">class</span> <span class="cls">VerificationEngine</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, ground_detector, sar_mapper, compensation_calc):
+        self.ground   = ground_detector
+        self.sar      = sar_mapper
+        self.comp_calc = compensation_calc
+
+    <span class="kw">def</span> <span class="fn">process_claim</span>(self, claim: dict) -> <span class="cls">VerificationResult</span>:
+        <span class="fn">logging.info</span>(<span class="fn">f</span><span class="str">"Processing claim {claim['claim_id']}"</span>)
+
+        <span class="cm"># ── Step 1: Analyze ground photos ─────────────────────────</span>
+        ground_results = []
+        <span class="kw">for</span> photo_path <span class="kw">in</span> claim[<span class="str">'photo_paths'</span>]:
+            r = self.ground.<span class="fn">analyze</span>(
+                photo_path,
+                claim[<span class="str">'submitted_lat'</span>], claim[<span class="str">'submitted_lon'</span>],
+                claim[<span class="str">'event_date'</span>], claim[<span class="str">'village_polygon'</span>]
+            )
+            ground_results.<span class="fn">append</span>(r)
+
+        <span class="cm"># Take best ground score from multi-photo submission</span>
+        best_ground = <span class="fn">max</span>(ground_results, key=<span class="kw">lambda</span> x: x.ground_score)
+        all_flags   = [f <span class="kw">for</span> r <span class="kw">in</span> ground_results <span class="kw">for</span> f <span class="kw">in</span> r.flags]
+
+        <span class="cm"># ── Step 2: Satellite cross-validation ────────────────────</span>
+        sat_result = self.sar.<span class="fn">analyze_village</span>(
+            claim[<span class="str">'village_geojson'</span>],
+            claim[<span class="str">'event_date'</span>],
+            claim[<span class="str">'claimed_area_ha'</span>]
+        )
+
+        <span class="cm"># ── Step 3: Fraud check override ──────────────────────────</span>
+        <span class="kw">if</span> <span class="str">'DUPLICATE_IMAGE'</span> <span class="kw">in</span> all_flags:
+            <span class="kw">return</span> self.<span class="fn">_build_result</span>(claim[<span class="str">'claim_id'</span>], <span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span>,
+                <span class="cls">ClaimStatus</span>.FRAUD_FLAGGED, <span class="num">0</span>, <span class="num">0</span>, all_flags,
+                <span class="str">"⚠ Claim rejected: duplicate image detected. Ref: FRAUD-PHOTO"</span>)
+
+        <span class="cm"># ── Step 4: Compute total score ───────────────────────────</span>
+        total = best_ground.ground_score + sat_result.satellite_score
+
+        <span class="cm"># ── Step 5: Route by score ────────────────────────────────</span>
+        <span class="kw">if</span>   total >= <span class="num">75</span>: status = <span class="cls">ClaimStatus</span>.AUTO_APPROVED
+        <span class="kw">elif</span> total >= <span class="num">55</span>: status = <span class="cls">ClaimStatus</span>.OFFICER_REVIEW
+        <span class="kw">elif</span> total >= <span class="num">35</span>: status = <span class="cls">ClaimStatus</span>.FIELD_VERIFICATION
+        <span class="kw">else</span>:             status = <span class="cls">ClaimStatus</span>.REJECTED
+
+        <span class="cm"># ── Step 6: Calculate compensation ────────────────────────</span>
+        comp = self.comp_calc.<span class="fn">calculate</span>(
+            area_ha=sat_result.flooded_area_ha,
+            crop_type=claim[<span class="str">'crop_type'</span>],
+            damage_pct=sat_result.flood_percentage / <span class="num">100</span>,
+            state=claim[<span class="str">'state'</span>]
+        ) <span class="kw">if</span> status != <span class="cls">ClaimStatus</span>.REJECTED <span class="kw">else</span> <span class="num">0</span>
+
+        sms = self.<span class="fn">_build_sms</span>(claim[<span class="str">'claim_id'</span>], total, status, comp)
+
+        <span class="kw">return</span> <span class="cls">VerificationResult</span>(
+            claim_id=claim[<span class="str">'claim_id'</span>], total_score=total,
+            ground_score=best_ground.ground_score,
+            satellite_score=sat_result.satellite_score,
+            status=status, estimated_compensation=comp,
+            flood_area_ha=sat_result.flooded_area_ha,
+            flags=all_flags, sms_message=sms
+        )
+
+    <span class="kw">def</span> <span class="fn">_build_sms</span>(self, cid, score, status, comp) -> <span class="cls">str</span>:
+        status_map = {
+            <span class="cls">ClaimStatus</span>.AUTO_APPROVED:      <span class="str">f"✓ APPROVED. Payment ₹{comp:,.0f} in 48h."</span>,
+            <span class="cls">ClaimStatus</span>.OFFICER_REVIEW:     <span class="str">"Under review by district officer (48h)."</span>,
+            <span class="cls">ClaimStatus</span>.FIELD_VERIFICATION: <span class="str">"Field survey scheduled in 5 days."</span>,
+            <span class="cls">ClaimStatus</span>.REJECTED:           <span class="str">"Insufficient evidence. Submit via portal."</span>,
+        }
+        <span class="kw">return</span> <span class="fn">f</span><span class="str">"BhumiRaksha [{cid}]: {status_map.get(status, '')} Score:{score}/100"</span>
+</pre></div></div>
+    </div>
+
+    <div id="c4" class="tab-content">
+      <div class="code-wrap">
+        <div class="code-top"><span class="code-fname">compensation.py</span><span class="code-lang">Python</span></div>
+        <div class="code-body"><pre>
+<span class="cm"># compensation.py — NDRF rate-based compensation calculator</span>
+<span class="kw">from</span> <span class="cls">dataclasses</span> <span class="kw">import</span> <span class="fn">dataclass</span>
+
+<span class="cm"># NDRF norms (2023 revision) — INR per hectare</span>
+CROP_RATES = {
+    <span class="str">'paddy_rainfed'</span>:    <span class="num">6800</span>,
+    <span class="str">'paddy_irrigated'</span>:  <span class="num">13500</span>,
+    <span class="str">'wheat'</span>:            <span class="num">6800</span>,
+    <span class="str">'jute'</span>:             <span class="num">6800</span>,
+    <span class="str">'sugarcane'</span>:        <span class="num">18000</span>,
+    <span class="str">'vegetables'</span>:       <span class="num">13500</span>,
+    <span class="str">'perennial_crops'</span>:  <span class="num">18000</span>,
+}
+
+HOUSE_RATES = {
+    <span class="str">'pucca_full'</span>:     <span class="num">95100</span>,
+    <span class="str">'pucca_partial'</span>:  <span class="num">5200</span>,
+    <span class="str">'kutcha_full'</span>:    <span class="num">3200</span>,
+    <span class="str">'kutcha_partial'</span>: <span class="num">3200</span>,
+}
+
+<span class="cm"># State-specific multipliers (Assam, Bihar get higher due to frequency)</span>
+STATE_MULTIPLIERS = {
+    <span class="str">'Assam'</span>:       <span class="num">1.2</span>,
+    <span class="str">'Bihar'</span>:       <span class="num">1.15</span>,
+    <span class="str">'Odisha'</span>:      <span class="num">1.1</span>,
+    <span class="str">'Uttar Pradesh'</span>: <span class="num">1.0</span>,
+    <span class="str">'West Bengal'</span>: <span class="num">1.05</span>,
+}
+
+<span class="dec">@dataclass</span>
+<span class="kw">class</span> <span class="cls">CompensationBreakdown</span>:
+    crop_loss: <span class="cls">float</span>
+    house_damage: <span class="cls">float</span>
+    total: <span class="cls">float</span>
+    breakdown_str: <span class="cls">str</span>
+
+<span class="kw">class</span> <span class="cls">CompensationCalculator</span>:
+    <span class="kw">def</span> <span class="fn">calculate</span>(self,
+                   area_ha: <span class="cls">float</span>,
+                   crop_type: <span class="cls">str</span>,
+                   damage_pct: <span class="cls">float</span>,   <span class="cm"># 0.0–1.0</span>
+                   state: <span class="cls">str</span>,
+                   house_damage_type: <span class="cls">str</span> = <span class="kw">None</span>) -> <span class="cls">CompensationBreakdown</span>:
+
+        multiplier = STATE_MULTIPLIERS.<span class="fn">get</span>(state, <span class="num">1.0</span>)
+        rate = CROP_RATES.<span class="fn">get</span>(crop_type, <span class="num">6800</span>)
+
+        <span class="cm"># Crop loss: area × rate × damage% × state multiplier</span>
+        crop_loss = area_ha * rate * damage_pct * multiplier
+
+        <span class="cm"># House damage (if reported)</span>
+        house_loss = HOUSE_RATES.<span class="fn">get</span>(house_damage_type, <span class="num">0</span>) <span class="kw">if</span> house_damage_type <span class="kw">else</span> <span class="num">0</span>
+
+        total = crop_loss + house_loss
+
+        breakdown = (
+            <span class="fn">f</span><span class="str">"Crop: {area_ha:.1f}ha × ₹{rate} × {damage_pct*100:.0f}% × {multiplier} = ₹{crop_loss:,.0f}\n"</span>
+            <span class="fn">f</span><span class="str">"House: ₹{house_loss:,.0f}\nTotal: ₹{total:,.0f}"</span>
+        )
+
+        <span class="kw">return</span> <span class="cls">CompensationBreakdown</span>(
+            crop_loss=<span class="fn">round</span>(crop_loss, <span class="num">2</span>),
+            house_damage=<span class="fn">round</span>(house_loss, <span class="num">2</span>),
+            total=<span class="fn">round</span>(total, <span class="num">2</span>),
+            breakdown_str=breakdown
+        )
+
+    <span class="kw">def</span> <span class="fn">bulk_calculate</span>(self, claims_df) -> <span class="cls">dict</span>:
+        <span class="cm">"Process a DataFrame of approved claims, return totals by district"</span>
+        results = claims_df.<span class="fn">apply</span>(
+            <span class="kw">lambda</span> row: self.<span class="fn">calculate</span>(
+                row.flooded_ha, row.crop_type,
+                row.damage_pct, row.state
+            ).total, axis=<span class="num">1</span>
+        )
+        <span class="kw">return</span> {
+            <span class="str">'individual_amounts'</span>: results.<span class="fn">tolist</span>(),
+            <span class="str">'district_totals'</span>: claims_df.<span class="fn">groupby</span>(<span class="str">'district'</span>)[<span class="str">'claim_id'</span>].<span class="fn">count</span>().<span class="fn">to_dict</span>(),
+            <span class="str">'total_outgo'</span>: results.<span class="fn">sum</span>()
+        }
+</pre></div></div>
+    </div>
+
+    <div id="c5" class="tab-content">
+      <div class="code-wrap">
+        <div class="code-top"><span class="code-fname">mobile_api.py</span><span class="code-lang">Python</span></div>
+        <div class="code-body"><pre>
+<span class="cm"># mobile_api.py — FastAPI endpoints for the Gaon Bura mobile app</span>
+<span class="kw">from</span> <span class="cls">fastapi</span> <span class="kw">import</span> <span class="cls">FastAPI</span>, <span class="cls">UploadFile</span>, <span class="cls">File</span>, <span class="cls">Form</span>, <span class="cls">Depends</span>, <span class="cls">HTTPException</span>
+<span class="kw">from</span> <span class="cls">fastapi.middleware.cors</span> <span class="kw">import</span> <span class="cls">CORSMiddleware</span>
+<span class="kw">from</span> <span class="cls">pydantic</span> <span class="kw">import</span> <span class="cls">BaseModel</span>
+<span class="kw">from</span> <span class="cls">typing</span> <span class="kw">import</span> <span class="fn">List</span>, <span class="fn">Optional</span>
+<span class="kw">from</span> <span class="cls">uuid</span> <span class="kw">import</span> <span class="fn">uuid4</span>
+<span class="kw">from</span> <span class="cls">datetime</span> <span class="kw">import</span> <span class="fn">date</span>
+<span class="kw">import</span> <span class="cls">aiofiles</span>
+
+app = <span class="cls">FastAPI</span>(title=<span class="str">"BhumiRaksha API"</span>, version=<span class="str">"1.0"</span>)
+
+app.<span class="fn">add_middleware</span>(<span class="cls">CORSMiddleware</span>,
+    allow_origins=[<span class="str">"*"</span>], allow_credentials=<span class="kw">True</span>,
+    allow_methods=[<span class="str">"*"</span>], allow_headers=[<span class="str">"*"</span>])
+
+<span class="kw">class</span> <span class="cls">ClaimStatusResponse</span>(<span class="cls">BaseModel</span>):
+    claim_id: <span class="cls">str</span>
+    status: <span class="cls">str</span>
+    total_score: <span class="cls">int</span>
+    estimated_compensation: <span class="cls">float</span>
+    flood_area_ha: <span class="cls">float</span>
+    message: <span class="cls">str</span>
+
+<span class="cm"># ── Submit Flood Claim ─────────────────────────────────────────────</span>
+<span class="dec">@app.post</span>(<span class="str">"/api/v1/claims/submit"</span>, response_model=<span class="cls">ClaimStatusResponse</span>)
+<span class="kw">async def</span> <span class="fn">submit_claim</span>(
+    photos:        <span class="fn">List</span>[<span class="cls">UploadFile</span>] = <span class="cls">File</span>(...),
+    aadhaar_token: <span class="cls">str</span>  = <span class="cls">Form</span>(...),  <span class="cm"># Hashed Aadhaar, NOT raw</span>
+    village_id:    <span class="cls">str</span>  = <span class="cls">Form</span>(...),
+    crop_type:     <span class="cls">str</span>  = <span class="cls">Form</span>(...),
+    claimed_area:  <span class="cls">float</span>= <span class="cls">Form</span>(...),  <span class="cm"># hectares</span>
+    event_date:    <span class="cls">str</span>  = <span class="cls">Form</span>(...),  <span class="cm"># YYYY-MM-DD</span>
+    submitted_lat: <span class="cls">float</span>= <span class="cls">Form</span>(...),
+    submitted_lon: <span class="cls">float</span>= <span class="cls">Form</span>(...),
+    damage_type:   <span class="cls">str</span>  = <span class="cls">Form</span>(<span class="str">"crop"</span>),  <span class="cm"># crop/house/both</span>
+    house_damage:  <span class="fn">Optional</span>[<span class="cls">str</span>] = <span class="cls">Form</span>(<span class="kw">None</span>),
+    state:         <span class="cls">str</span>  = <span class="cls">Form</span>(<span class="str">"Assam"</span>)
+):
+    <span class="cm"># Validate min 3 photos required</span>
+    <span class="kw">if</span> <span class="fn">len</span>(photos) < <span class="num">3</span>:
+        <span class="kw">raise</span> <span class="cls">HTTPException</span>(<span class="num">400</span>, <span class="str">"Minimum 3 photos required for claim"</span>)
+
+    claim_id = <span class="str">f"CLM-{uuid4().hex[:8].upper()}"</span>
+
+    <span class="cm"># Save photos temporarily</span>
+    photo_paths = []
+    <span class="kw">for</span> i, photo <span class="kw">in</span> <span class="fn">enumerate</span>(photos):
+        path = <span class="fn">f</span><span class="str">"/tmp/claims/{claim_id}_{i}.jpg"</span>
+        <span class="kw">async with</span> <span class="fn">aiofiles.open</span>(path, <span class="str">'wb'</span>) <span class="kw">as</span> f:
+            <span class="kw">await</span> f.<span class="fn">write</span>(<span class="kw">await</span> photo.<span class="fn">read</span>())
+        photo_paths.<span class="fn">append</span>(path)
+
+    <span class="cm"># Fetch village geojson from DB by village_id</span>
+    village_geo = <span class="kw">await</span> <span class="fn">get_village_polygon</span>(village_id)
+
+    claim = {
+        <span class="str">'claim_id'</span>: claim_id, <span class="str">'photo_paths'</span>: photo_paths,
+        <span class="str">'village_id'</span>: village_id, <span class="str">'crop_type'</span>: crop_type,
+        <span class="str">'claimed_area_ha'</span>: claimed_area, <span class="str">'event_date'</span>: event_date,
+        <span class="str">'submitted_lat'</span>: submitted_lat, <span class="str">'submitted_lon'</span>: submitted_lon,
+        <span class="str">'village_geojson'</span>: village_geo, <span class="str">'state'</span>: state,
+        <span class="str">'house_damage_type'</span>: house_damage, <span class="str">'aadhaar_token'</span>: aadhaar_token
+    }
+
+    <span class="cm"># Run verification pipeline (background task in production)</span>
+    result = verification_engine.<span class="fn">process_claim</span>(claim)
+
+    <span class="cm"># Send SMS to Gaon Bura</span>
+    <span class="kw">await</span> <span class="fn">send_sms</span>(village_id, result.sms_message)
+
+    <span class="kw">return</span> <span class="cls">ClaimStatusResponse</span>(
+        claim_id=claim_id,
+        status=result.status.value,
+        total_score=result.total_score,
+        estimated_compensation=result.estimated_compensation,
+        flood_area_ha=result.flood_area_ha,
+        message=result.sms_message
+    )
+
+<span class="cm"># ── Check Claim Status (SMS shortcode or app) ──────────────────────</span>
+<span class="dec">@app.get</span>(<span class="str">"/api/v1/claims/{claim_id}"</span>)
+<span class="kw">async def</span> <span class="fn">get_claim_status</span>(claim_id: <span class="cls">str</span>):
+    claim = <span class="kw">await</span> <span class="fn">db_get_claim</span>(claim_id)
+    <span class="kw">if</span> <span class="kw">not</span> claim:
+        <span class="kw">raise</span> <span class="cls">HTTPException</span>(<span class="num">404</span>, <span class="str">"Claim not found"</span>)
+    <span class="kw">return</span> claim
+
+<span class="cm"># ── District Officer Dashboard endpoint ───────────────────────────</span>
+<span class="dec">@app.get</span>(<span class="str">"/api/v1/officer/pending"</span>)
+<span class="kw">async def</span> <span class="fn">get_pending_claims</span>(district: <span class="cls">str</span>, officer_token: <span class="cls">str</span>):
+    <span class="kw">await</span> <span class="fn">verify_officer_token</span>(officer_token)
+    <span class="kw">return</span> <span class="kw">await</span> <span class="fn">db_get_pending_by_district</span>(district)
+
+<span class="dec">@app.post</span>(<span class="str">"/api/v1/officer/approve"</span>)
+<span class="kw">async def</span> <span class="fn">bulk_approve</span>(claim_ids: <span class="fn">List</span>[<span class="cls">str</span>], officer_token: <span class="cls">str</span>):
+    <span class="kw">await</span> <span class="fn">verify_officer_token</span>(officer_token)
+    <span class="cm"># Trigger PFMS API for each approved claim</span>
+    <span class="kw">for</span> cid <span class="kw">in</span> claim_ids:
+        <span class="kw">await</span> <span class="fn">queue_pfms_transfer</span>(cid)
+    <span class="kw">return</span> {<span class="str">"approved"</span>: <span class="fn">len</span>(claim_ids), <span class="str">"queued_for_dbt"</span>: <span class="kw">True</span>}
+</pre></div></div>
+    </div>
+
+  </div><!-- /tabs -->
+</section>
+
+<!-- 9. ROADMAP -->
+<section class="sec">
+  <div class="sec-header">
+    <span class="sec-num">09</span>
+    <h2 class="sec-title">Build Roadmap</h2>
+  </div>
+  <div class="roadmap">
+    <div class="rm-phase">
+      <div class="rm-num">Phase 01</div>
+      <div class="rm-title">Base Model + Data</div>
+      <div class="rm-dur">⏱ 6–8 weeks</div>
+      <ul class="rm-items">
+        <li>Download Sen1Floods11 dataset (446 labeled SAR images)</li>
+        <li>Fine-tune SegFormer-B4 on Assam/Bihar flood events</li>
+        <li>Collect FloodNet dataset for ground photo classifier</li>
+        <li>Train YOLOv8m flood/no-flood classifier on phone photos</li>
+        <li>GEE pipeline: Sentinel-1 backscatter → flood mask</li>
+        <li>Evaluate: IoU > 0.80 for SAR; F1 > 0.85 ground</li>
+      </ul>
+    </div>
+    <div class="rm-phase">
+      <div class="rm-num">Phase 02</div>
+      <div class="rm-title">Verification Engine</div>
+      <div class="rm-dur">⏱ 4–5 weeks</div>
+      <ul class="rm-items">
+        <li>Build score fusion logic (ground + satellite)</li>
+        <li>Implement fraud checks: phash, EXIF, GPS polygon</li>
+        <li>NDRF compensation calculator with state tables</li>
+        <li>FastAPI backend with all endpoints</li>
+        <li>PostgreSQL + PostGIS village boundary DB (Census)</li>
+        <li>SMS integration (Twilio or MSG91)</li>
+      </ul>
+    </div>
+    <div class="rm-phase">
+      <div class="rm-num">Phase 03</div>
+      <div class="rm-title">App + Dashboard</div>
+      <div class="rm-dur">⏱ 4–6 weeks</div>
+      <ul class="rm-items">
+        <li>Gaon Bura Android app (Flutter, offline-first)</li>
+        <li>Aadhaar OTP login (UIDAI sandbox)</li>
+        <li>Multilingual: Assamese, Hindi, Odia, Bengali</li>
+        <li>District officer web dashboard (Next.js)</li>
+        <li>Folium/Leaflet flood map with claim overlay</li>
+        <li>PFMS API integration (test environment first)</li>
+      </ul>
+    </div>
+    <div class="rm-phase">
+      <div class="rm-num">Phase 04</div>
+      <div class="rm-title">Pilot + Scale</div>
+      <div class="rm-dur">⏱ 8–12 weeks</div>
+      <ul class="rm-items">
+        <li>Pilot: 2–3 revenue circles, Assam (next flood season)</li>
+        <li>Enroll 50–100 Gaon Buras with training workshop</li>
+        <li>Calibrate score thresholds from ground truth</li>
+        <li>MoU with SDMA (State Disaster Mgmt Authority)</li>
+        <li>Extend base model: add fire + drought detection heads</li>
+        <li>Scale to 500+ villages, integrate PFMS production</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>BhumiRaksha — Flood Detection & Relief System</p>
+  <p>Stack: YOLOv8 · SegFormer · Sentinel-1 SAR · GEE · FastAPI · Flutter · PFMS · PostGIS</p>
+</footer>
+
+</div><!-- /wrapper -->
+
+<script>
+function showTab2(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

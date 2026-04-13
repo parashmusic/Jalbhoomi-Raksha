@@ -1,0 +1,4 @@
+# ML Models directory
+# Place trained model weights here:
+# - flood_yolov8m.pt (YOLOv8 ground photo classifier)
+# - segformer_b4_flood.pth (SegFormer SAR flood mapper)

@@ -1,0 +1,5 @@
+# Data directory
+# Place datasets and geospatial data here:
+# - village_boundaries/ (Census shapefiles)
+# - sen1floods11/ (SAR training data)
+# - floodnet/ (Ground photo dataset)
