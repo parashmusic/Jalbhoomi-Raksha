@@ -51,16 +51,14 @@ Thumbs.db
 desktop.ini
 
 # Project Specific Folders
-uploads/
-backend/uploads/
+backend/uploads/**
+!backend/uploads/claims/CLM-71A0BCD8/
 outputs/
 temp/
 tmp/
 *.tmp
 data/*
 !data/.gitkeep
-# Allow the example claim to be committed for demo purposes
-!backend/uploads/claims/CLM-71A0BCD8/
 
 # Logs
 logs/
