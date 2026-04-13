@@ -242,17 +242,6 @@ Total Score = Ground Score (0–50) + Satellite Score (0–50)
 
 ---
 
-## 📋 Build Roadmap
-
-| Phase | Duration | Status |
-|-------|----------|--------|
-| Phase 1: Base Model + Data | 6–8 weeks | 🔜 Next |
-| Phase 2: Verification Engine | 4–5 weeks | ✅ Backend built |
-| Phase 3: App + Dashboard | 4–6 weeks | 🔜 Dashboard next |
-| Phase 4: Pilot + Scale | 8–12 weeks | ⏳ Future |
-
----
-
 ## 📄 License
 
 This project is developed for disaster relief purposes.
